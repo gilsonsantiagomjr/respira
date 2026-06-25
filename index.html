@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0E2A2B">
+<title>Respira</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0E2A2B; --surface:#143B3C; --surface2:#1B4A4B;
+    --breath:#5FD3C4; --breath-dim:#3a9b90;
+    --ember:#E8924A; --ember-dim:#b96e34;
+    --cloud:#EAF4F2; --muted:#7FA3A0; --line:rgba(95,211,196,.14);
+    --ok:#7FD39A;
+    --display:'Fraunces',Georgia,serif;
+    --ui:'Inter',system-ui,sans-serif;
+    --mono:'Space Mono',monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--ink); color:var(--cloud); font-family:var(--ui);
+    line-height:1.5; overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{max-width:460px;margin:0 auto;min-height:100vh;position:relative;padding-bottom:84px}
+
+  /* ---------- header ---------- */
+  .top{padding:22px 22px 6px;display:flex;align-items:center;justify-content:space-between}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand .mark{width:26px;height:26px;border-radius:50%;
+    background:radial-gradient(circle at 50% 45%,var(--breath),transparent 70%);
+    box-shadow:0 0 18px rgba(95,211,196,.5)}
+  .brand h1{font-family:var(--display);font-weight:500;font-size:21px;margin:0;letter-spacing:.3px}
+  .gear{background:none;border:none;color:var(--muted);font-size:20px;padding:8px;cursor:pointer;border-radius:10px}
+  .gear:active{background:var(--surface)}
+
+  /* ---------- panes ---------- */
+  .pane{display:none;padding:8px 22px 24px;animation:fade .35s ease}
+  .pane.on{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--breath-dim)}
+
+  /* ---------- hero orb ---------- */
+  .hero{display:flex;flex-direction:column;align-items:center;text-align:center;padding:14px 0 8px}
+  .orbwrap{position:relative;width:230px;height:230px;display:flex;align-items:center;justify-content:center;margin:6px 0 2px}
+  .orb{position:absolute;width:170px;height:170px;border-radius:50%;
+    background:radial-gradient(circle at 50% 42%, rgba(95,211,196,.9), rgba(95,211,196,.18) 58%, transparent 72%);
+    box-shadow:0 0 60px rgba(95,211,196,.35);
+    animation:ambient 9s ease-in-out infinite}
+  .orb.ember{background:radial-gradient(circle at 50% 42%, rgba(232,146,74,.95), rgba(232,146,74,.2) 58%, transparent 72%);
+    box-shadow:0 0 60px rgba(232,146,74,.4)}
+  .ring{position:absolute;width:212px;height:212px;border-radius:50%;border:1px solid var(--line)}
+  @keyframes ambient{0%,100%{transform:scale(.86);opacity:.82}50%{transform:scale(1.06);opacity:1}}
+  .orbtext{position:relative;z-index:2}
+  .bignum{font-family:var(--display);font-weight:500;font-size:62px;line-height:.95;letter-spacing:-1px}
+  .bigunit{font-family:var(--ui);font-size:13px;color:var(--muted);letter-spacing:.5px;margin-top:4px}
+  .subline{margin-top:14px;color:var(--muted);font-size:14px;max-width:300px}
+  .subline b{color:var(--cloud);font-weight:600}
+
+  /* ---------- sos button ---------- */
+  .sos{display:block;width:100%;margin:18px 0 6px;padding:17px;border:none;border-radius:16px;
+    background:linear-gradient(180deg,var(--ember),var(--ember-dim));color:#1c1109;
+    font-family:var(--ui);font-weight:700;font-size:16px;letter-spacing:.2px;cursor:pointer;
+    box-shadow:0 6px 22px rgba(232,146,74,.28)}
+  .sos:active{transform:translateY(1px)}
+  .sos small{display:block;font-weight:500;font-size:12px;opacity:.8;margin-top:2px}
+
+  /* ---------- stat cards ---------- */
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:15px}
+  .card .k{font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+  .card .v{font-family:var(--display);font-size:27px;font-weight:500;margin-top:6px;line-height:1}
+  .card .v small{font-family:var(--ui);font-size:13px;color:var(--muted);font-weight:500}
+
+  /* ---------- prep checklist ---------- */
+  .block{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:16px}
+  .block h3{font-family:var(--display);font-weight:500;font-size:18px;margin:0 0 4px}
+  .block p.note{color:var(--muted);font-size:13.5px;margin:0 0 12px}
+  .check{display:flex;align-items:flex-start;gap:12px;padding:11px 0;border-top:1px solid var(--line);cursor:pointer}
+  .check:first-of-type{border-top:none}
+  .box{flex:0 0 22px;width:22px;height:22px;border-radius:7px;border:1.6px solid var(--breath-dim);
+    display:flex;align-items:center;justify-content:center;margin-top:1px;transition:.18s}
+  .box svg{width:13px;height:13px;opacity:0;transform:scale(.6);transition:.18s}
+  .check.done .box{background:var(--breath);border-color:var(--breath)}
+  .check.done .box svg{opacity:1;transform:none}
+  .check .ct{font-size:14.5px}
+  .check .cs{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .check.done .ct{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--breath-dim)}
+
+  /* ---------- ocio ---------- */
+  .roulette{background:linear-gradient(160deg,var(--surface2),var(--surface));border:1px solid var(--line);
+    border-radius:18px;padding:22px;text-align:center;margin-top:10px}
+  .roulette .out{font-family:var(--display);font-size:21px;font-weight:500;min-height:56px;
+    display:flex;align-items:center;justify-content:center;padding:8px 4px;transition:.2s}
+  .roulette .out.spin{opacity:.3;transform:translateY(-4px)}
+  .spinbtn{margin-top:8px;padding:13px 22px;border:none;border-radius:13px;background:var(--breath);
+    color:#06201d;font-weight:700;font-family:var(--ui);font-size:15px;cursor:pointer}
+  .spinbtn:active{transform:translateY(1px)}
+
+  .winrow{display:flex;align-items:center;gap:12px;padding:13px 0;border-top:1px solid var(--line)}
+  .winrow:first-of-type{border-top:none}
+  .wt{font-family:var(--mono);font-size:14px;color:var(--breath);flex:0 0 54px}
+  .wbody{flex:1;min-width:0}
+  .wbody .wl{font-size:14.5px}
+  .wbody .wa{font-size:12.5px;color:var(--muted);margin-top:1px}
+  .winrow .del{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px 6px}
+
+  .additem{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  input,select{background:var(--ink);border:1px solid var(--line);color:var(--cloud);
+    border-radius:11px;padding:11px 12px;font-family:var(--ui);font-size:14px;width:100%}
+  input:focus,select:focus{outline:none;border-color:var(--breath-dim)}
+  input::placeholder{color:#5b7c79}
+  .miniadd{background:var(--surface2);color:var(--breath);border:1px solid var(--line);
+    border-radius:11px;padding:11px 14px;font-weight:600;cursor:pointer;white-space:nowrap}
+
+  /* ---------- saude timeline ---------- */
+  .tl{position:relative;margin-top:8px;padding-left:6px}
+  .tlitem{position:relative;padding:0 0 4px 28px;margin-bottom:16px}
+  .tlitem::before{content:"";position:absolute;left:7px;top:20px;bottom:-16px;width:2px;background:var(--line)}
+  .tlitem:last-child::before{display:none}
+  .dot{position:absolute;left:0;top:3px;width:16px;height:16px;border-radius:50%;
+    border:2px solid var(--breath-dim);background:var(--ink)}
+  .tlitem.reached .dot{background:var(--breath);border-color:var(--breath);box-shadow:0 0 12px rgba(95,211,196,.5)}
+  .tlitem .when{font-family:var(--mono);font-size:11px;letter-spacing:.5px;color:var(--breath)}
+  .tlitem.future .when{color:var(--muted)}
+  .tlitem .what{font-size:14px;margin-top:3px}
+  .tlitem.future .what{color:var(--muted)}
+
+  /* ---------- registro ---------- */
+  .regbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 4px}
+  .regbtn{padding:14px;border-radius:14px;border:1px solid var(--line);background:var(--surface);
+    color:var(--cloud);font-family:var(--ui);font-weight:600;font-size:14px;cursor:pointer;text-align:center}
+  .regbtn.warn{border-color:var(--ember-dim);color:var(--ember)}
+  .regbtn:active{transform:translateY(1px)}
+  .logitem{display:flex;gap:12px;padding:13px 0;border-top:1px solid var(--line)}
+  .logitem:first-of-type{border-top:none}
+  .ltag{font-family:var(--mono);font-size:10px;letter-spacing:.5px;padding:3px 8px;border-radius:7px;height:fit-content;white-space:nowrap}
+  .ltag.sup{background:rgba(95,211,196,.14);color:var(--breath)}
+  .ltag.lap{background:rgba(232,146,74,.15);color:var(--ember)}
+  .ltag.nota{background:rgba(127,163,160,.16);color:var(--muted)}
+  .lbody .lwhen{font-size:11px;color:var(--muted);font-family:var(--mono)}
+  .lbody .ltxt{font-size:14px;margin-top:2px}
+  .empty{color:var(--muted);font-size:14px;text-align:center;padding:26px 10px}
+
+  /* ---------- bottom nav ---------- */
+  nav{position:fixed;left:0;right:0;bottom:0;max-width:460px;margin:0 auto;
+    background:rgba(14,42,43,.92);backdrop-filter:blur(14px);border-top:1px solid var(--line);
+    display:flex;padding:8px 6px calc(8px + env(safe-area-inset-bottom));z-index:40}
+  .tab{flex:1;background:none;border:none;color:var(--muted);font-family:var(--ui);font-size:11px;
+    padding:6px 0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .tab svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7}
+  .tab.on{color:var(--breath)}
+
+  /* ---------- fissura overlay ---------- */
+  .overlay{position:fixed;inset:0;background:radial-gradient(circle at 50% 38%,#0c2526,#071617);
+    z-index:90;display:none;flex-direction:column;align-items:center;justify-content:center;
+    padding:30px;text-align:center}
+  .overlay.on{display:flex}
+  .ovphase{font-family:var(--display);font-size:30px;font-weight:500;height:40px;margin-bottom:6px}
+  .bigorb{width:200px;height:200px;border-radius:50%;
+    background:radial-gradient(circle at 50% 42%, rgba(95,211,196,.95), rgba(95,211,196,.2) 60%, transparent 74%);
+    box-shadow:0 0 70px rgba(95,211,196,.4);transition:transform 4s ease-in-out,opacity 4s ease-in-out;transform:scale(.7)}
+  .ovtimer{font-family:var(--mono);font-size:15px;color:var(--breath);margin-top:22px;letter-spacing:1px}
+  .ovtip{color:var(--muted);font-size:14px;max-width:320px;margin-top:10px;line-height:1.55}
+  .ovbtns{margin-top:26px;display:flex;flex-direction:column;gap:10px;width:100%;max-width:300px}
+  .ovbtns button{padding:14px;border-radius:13px;font-family:var(--ui);font-weight:600;font-size:15px;cursor:pointer;border:1px solid var(--line)}
+  .ov-done{background:var(--breath);color:#06201d;border:none}
+  .ov-out{background:var(--surface);color:var(--cloud)}
+  .ov-close{background:none;color:var(--muted);border:none;font-size:13px}
+
+  /* ---------- sheet (settings) ---------- */
+  .sheet{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:80;display:none;align-items:flex-end}
+  .sheet.on{display:flex}
+  .sheetbody{background:var(--surface);width:100%;max-width:460px;margin:0 auto;border-radius:22px 22px 0 0;
+    padding:24px 22px calc(24px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto}
+  .sheetbody h2{font-family:var(--display);font-weight:500;font-size:21px;margin:0 0 16px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px;font-family:var(--mono);letter-spacing:.5px}
+  .row2{display:flex;gap:10px}
+  .switch{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--line)}
+  .toggle{width:46px;height:27px;border-radius:20px;background:var(--ink);border:1px solid var(--line);position:relative;cursor:pointer;flex:0 0 46px}
+  .toggle::after{content:"";position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;background:var(--muted);transition:.2s}
+  .toggle.on{background:var(--breath-dim)}
+  .toggle.on::after{left:22px;background:var(--cloud)}
+  .savebtn{width:100%;margin-top:18px;padding:15px;border:none;border-radius:14px;background:var(--breath);color:#06201d;font-weight:700;font-size:15px;font-family:var(--ui);cursor:pointer}
+  .disclaim{font-size:11.5px;color:var(--muted);margin-top:14px;line-height:1.5}
+
+  @media (prefers-reduced-motion: reduce){
+    .orb{animation:none;transform:scale(.95)}
+    .bigorb{transition:opacity 1.2s ease-in-out}
+    *{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="brand"><div class="mark"></div><h1>Respira</h1></div>
+    <button class="gear" id="gear" aria-label="Ajustes">⚙</button>
+  </div>
+
+  <!-- HOJE -->
+  <section class="pane on" id="pane-hoje">
+    <div class="hero">
+      <div class="orbwrap"><div class="ring"></div><div class="orb" id="heroOrb"></div>
+        <div class="orbtext"><div class="bignum" id="bigNum">—</div><div class="bigunit" id="bigUnit"></div></div>
+      </div>
+      <div class="subline" id="heroSub"></div>
+    </div>
+    <button class="sos" id="sosBtn">Tô na fissura<small>respira comigo até a onda passar</small></button>
+    <div id="hojeBody"></div>
+  </section>
+
+  <!-- OCIO -->
+  <section class="pane" id="pane-ocio">
+    <p class="eyebrow">contra o tédio</p>
+    <h3 style="font-family:var(--display);font-weight:500;font-size:20px;margin:6px 0 2px">Decida antes da vontade chegar</h3>
+    <p style="color:var(--muted);font-size:13.5px;margin:0 0 4px">O tédio tem horário. Quando ele vier, você não escolhe na hora — você já escolheu.</p>
+    <div class="roulette">
+      <p class="eyebrow" style="color:var(--breath-dim)">roleta do tédio</p>
+      <div class="out" id="rouletteOut">Toque para sortear uma saída</div>
+      <button class="spinbtn" id="spinBtn">Me dá uma saída</button>
+    </div>
+    <div class="block">
+      <h3>Suas atividades</h3>
+      <p class="note">A roleta sorteia entre estas. Edite à vontade.</p>
+      <div id="actList"></div>
+      <div class="additem">
+        <input id="actInput" placeholder="Nova atividade (ex.: uma página de Latim)">
+        <button class="miniadd" id="actAdd">+ Add</button>
+      </div>
+    </div>
+    <div class="block">
+      <h3>Janelas de ócio</h3>
+      <p class="note">Seus horários típicos de tédio e o que fazer em cada um. Vão alimentar os lembretes do bot (Etapa 2).</p>
+      <div id="winList"></div>
+      <div class="additem">
+        <input id="winTime" type="time" style="flex:0 0 110px;width:110px">
+        <input id="winLabel" placeholder="Atividade planejada">
+        <button class="miniadd" id="winAdd">+ Add</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SAUDE -->
+  <section class="pane" id="pane-saude">
+    <p class="eyebrow">linha do tempo</p>
+    <h3 style="font-family:var(--display);font-weight:500;font-size:20px;margin:6px 0 12px">O que o corpo faz sem o cigarro</h3>
+    <div class="tl" id="timeline"></div>
+    <p class="disclaim">Marcos de recuperação de referência (INCA / CDC / OMS). Variam de pessoa para pessoa.</p>
+  </section>
+
+  <!-- REGISTRO -->
+  <section class="pane" id="pane-registro">
+    <p class="eyebrow">registro</p>
+    <h3 style="font-family:var(--display);font-weight:500;font-size:20px;margin:6px 0 10px">Diário honesto</h3>
+    <div class="regbtns">
+      <button class="regbtn" id="regSup">Superei uma fissura</button>
+      <button class="regbtn warn" id="regLap">Tive um lapso</button>
+    </div>
+    <button class="regbtn" id="regNota" style="width:100%;margin-bottom:8px">Anotar uma nota / gatilho</button>
+    <p style="color:var(--muted);font-size:12.5px;margin:4px 0 14px;line-height:1.5">Um lapso é <b style="color:var(--ember)">um cigarro</b>, não uma recaída. Registre o gatilho e retome hoje — sem "já estraguei tudo".</p>
+    <div id="logList"></div>
+  </section>
+
+  <nav>
+    <button class="tab on" data-tab="hoje"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>Hoje</button>
+    <button class="tab" data-tab="ocio"><svg viewBox="0 0 24 24"><path d="M12 3v9l5 3"/><circle cx="12" cy="12" r="9"/></svg>Ócio</button>
+    <button class="tab" data-tab="saude"><svg viewBox="0 0 24 24"><path d="M4 13h3l2 5 4-12 2 7h5"/></svg>Saúde</button>
+    <button class="tab" data-tab="registro"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h5"/></svg>Registro</button>
+  </nav>
+</div>
+
+<!-- FISSURA OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="ovphase" id="ovPhase">Pronto?</div>
+  <div class="bigorb" id="bigOrb"></div>
+  <div class="ovtimer" id="ovTimer">0:00</div>
+  <p class="ovtip">A vontade vem em onda e passa em <b style="color:var(--cloud)">3 a 5 minutos</b>, com ou sem cigarro. Respire com o círculo até ela ir embora.</p>
+  <div class="ovbtns">
+    <button class="ov-done" id="ovDone">Já passou</button>
+    <button class="ov-out" id="ovOut">Me dá uma saída do tédio</button>
+    <button class="ov-close" id="ovClose">Fechar</button>
+  </div>
+</div>
+
+<!-- SETTINGS SHEET -->
+<div class="sheet" id="sheet">
+  <div class="sheetbody">
+    <h2>Ajustes</h2>
+    <div class="field"><label>Dia D (primeiro dia sem fumar)</label><input type="date" id="setDiaD"></div>
+    <div class="row2">
+      <div class="field" style="flex:1"><label>Cigarros por dia</label><input type="number" id="setCigs" min="1" max="80"></div>
+      <div class="field" style="flex:1"><label>Cigarros por maço</label><input type="number" id="setPack" min="1" max="40"></div>
+    </div>
+    <div class="field"><label>Preço do maço (R$)</label><input type="number" id="setPrice" min="0" step="0.5"></div>
+    <div class="switch">
+      <div><div style="font-size:14.5px">Lembrete da bupropiona</div><div style="font-size:12px;color:var(--muted)">só um lembrete diário — sem opinar sobre dose</div></div>
+      <div class="toggle" id="setBup"></div>
+    </div>
+    <div class="field" id="bupHourWrap" style="margin-top:12px"><label>Horário do lembrete</label><input type="time" id="setBupHour"></div>
+    <button class="savebtn" id="saveBtn">Salvar</button>
+    <p class="disclaim">O Respira é um apoio comportamental e não substitui seu acompanhamento psiquiátrico e terapêutico. Decisões sobre medicação são do seu psiquiatra. Em crise, procure ajuda profissional ou ligue para o CVV (188).</p>
+  </div>
+</div>
+
+<script>
+/* ============ storage: 3 níveis (Telegram CloudStorage > window.storage > localStorage) ============ */
+const TG = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData !== undefined) ? window.Telegram.WebApp : null;
+if (TG) { try { TG.ready(); TG.expand(); } catch(e){} }
+const CS = (TG && TG.CloudStorage) ? TG.CloudStorage : null;
+
+const Store = {
+  getRaw(key){
+    return new Promise((resolve)=>{
+      if (CS){ CS.getItem(key,(err,val)=>resolve(err?null:(val||null))); return; }
+      if (window.storage){ window.storage.get(key).then(r=>resolve(r?r.value:null)).catch(()=>resolve(null)); return; }
+      try{ resolve(localStorage.getItem(key)); }catch(e){ resolve(null); }
+    });
+  },
+  setRaw(key,val){
+    return new Promise((resolve)=>{
+      if (CS){ CS.setItem(key,val,()=>resolve(true)); return; }
+      if (window.storage){ window.storage.set(key,val).then(()=>resolve(true)).catch(()=>resolve(false)); return; }
+      try{ localStorage.setItem(key,val); resolve(true);}catch(e){ resolve(false);}
+    });
+  },
+  async getJSON(key,fallback){ const r=await this.getRaw(key); if(!r) return fallback; try{return JSON.parse(r);}catch(e){return fallback;} },
+  async setJSON(key,obj){ return this.setRaw(key, JSON.stringify(obj)); }
+};
+
+/* ============ estado ============ */
+const SKEY='respira:state';
+const DEFAULT_ACTS=[
+  "Uma página de Lingua Latina (Ørberg)",
+  "Ler 10 min de Saramago",
+  "Caminhar 8 minutos",
+  "Anotar uma ideia de pesquisa",
+  "Beber um copo d'água e alongar",
+  "Exercício curto (flexões / agachamentos)",
+  "Ouvir um trecho de música inteiro, sentado",
+  "Arrumar uma gaveta por 5 min"
+];
+let state = {
+  diaD:'2026-07-01', cigsPerDay:20, cigsPerPack:20, pricePerPack:12,
+  bupOn:true, bupHour:'08:00',
+  acts:DEFAULT_ACTS.slice(),
+  windows:[
+    {t:'13:30', label:'Depois do almoço — caminhar 8 min'},
+    {t:'17:00', label:'Fim de tarde — uma página de Latim'}
+  ],
+  prep:{}, supTotal:0
+};
+
+function diaDDate(){ return new Date(state.diaD + 'T00:00:00-03:00'); }
+function now(){ return new Date(); }
+function msSince(){ return now() - diaDDate(); }
+function fmtBRL(v){ return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v); }
+function pad(n){ return String(n).padStart(2,'0'); }
+
+async function load(){
+  const s = await Store.getJSON(SKEY,null);
+  if (s) state = Object.assign(state, s);
+  renderAll();
+}
+async function save(){ await Store.setJSON(SKEY, state); }
+
+/* ============ log mensal ============ */
+function logKey(d){ d=d||new Date(); return 'respira:log_'+d.getFullYear()+'-'+pad(d.getMonth()+1); }
+async function addLog(kind, txt){
+  const k=logKey(); const arr=await Store.getJSON(k,[]);
+  arr.unshift({t:Date.now(), kind, txt:txt||''});
+  await Store.setJSON(k, arr);
+  if(kind==='sup'){ state.supTotal=(state.supTotal||0)+1; await save(); }
+  renderHoje(); renderLog();
+}
+async function recentLogs(){
+  const out=[]; const d=new Date();
+  for(let i=0;i<3;i++){ const k=logKey(d); const arr=await Store.getJSON(k,[]); out.push(...arr); d.setMonth(d.getMonth()-1); }
+  return out.sort((a,b)=>b.t-a.t).slice(0,40);
+}
+
+/* ============ render: HOJE ============ */
+function renderHoje(){
+  const ms=msSince(); const pre = ms<0;
+  const orb=document.getElementById('heroOrb');
+  const sub=document.getElementById('heroSub');
+  const body=document.getElementById('hojeBody');
+  orb.classList.remove('ember');
+
+  if(pre){
+    const days=Math.ceil(-ms/86400000);
+    document.getElementById('bigNum').textContent=days;
+    document.getElementById('bigUnit').textContent=days===1?'dia para o Dia D':'dias para o Dia D';
+    const dd=diaDDate();
+    sub.innerHTML='Seu Dia D é <b>'+dd.toLocaleDateString('pt-BR',{day:'2-digit',month:'long'})+'</b>. Use estes dias para preparar o terreno.';
+    body.innerHTML = prepHTML();
+    wirePrep();
+  } else {
+    const totalDays=Math.floor(ms/86400000);
+    if(totalDays<1){
+      const h=Math.floor(ms/3600000), m=Math.floor((ms%3600000)/60000);
+      document.getElementById('bigNum').textContent=h+'h';
+      document.getElementById('bigUnit').textContent=m+' min sem fumar';
+    } else {
+      document.getElementById('bigNum').textContent=totalDays;
+      document.getElementById('bigUnit').textContent=totalDays===1?'dia sem fumar':'dias sem fumar';
+    }
+    sub.innerHTML='Cada hora aqui é uma vitória. <b>Você está respirando.</b>';
+    const daysFrac=ms/86400000;
+    const cigsAvoided=Math.floor(daysFrac*state.cigsPerDay);
+    const money=daysFrac*state.cigsPerDay/state.cigsPerPack*state.pricePerPack;
+    body.innerHTML =
+      '<div class="cards">'+
+        card('Cigarros não fumados', cigsAvoided)+
+        card('Economizado', fmtBRL(money))+
+        card('Fissuras superadas', (state.supTotal||0))+
+        card('Maior sequência', totalDays+'<small> d</small>')+
+      '</div>';
+  }
+}
+function card(k,v){ return '<div class="card"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>'; }
+
+function prepHTML(){
+  const items=[
+    ['estimulos','Recolher isqueiros, cinzeiros e maços','Tire de vista o que vira gatilho automático'],
+    ['avisar','Avisar quem conhece você','Apoio social aumenta a chance de sucesso'],
+    ['ocio','Mapear suas janelas de ócio','Vá na aba Ócio e preencha seus horários'],
+    ['subs','Separar substitutos','Água, chiclete sem açúcar, palito, algo de mexer'],
+    ['psiq','Confirmar plano com o psiquiatra','Você já usa bupropiona há 1 ano — alinhe o Dia D']
+  ];
+  let h='<div class="block"><h3>Preparar o terreno</h3><p class="note">Antes do Dia D, o ambiente faz metade do trabalho.</p>';
+  items.forEach(([id,t,s])=>{
+    const done=state.prep[id]?'done':'';
+    h+='<div class="check '+done+'" data-prep="'+id+'"><div class="box"><svg viewBox="0 0 24 24" fill="none" stroke="#06201d" stroke-width="3.5"><path d="M5 13l4 4L19 7"/></svg></div><div><div class="ct">'+t+'</div><div class="cs">'+s+'</div></div></div>';
+  });
+  return h+'</div>';
+}
+function wirePrep(){
+  document.querySelectorAll('[data-prep]').forEach(el=>{
+    el.onclick=()=>{ const id=el.dataset.prep; state.prep[id]=!state.prep[id]; el.classList.toggle('done'); save(); haptic(); };
+  });
+}
+
+/* ============ render: ÓCIO ============ */
+function renderOcio(){
+  const al=document.getElementById('actList'); al.innerHTML='';
+  state.acts.forEach((a,i)=>{
+    const r=document.createElement('div'); r.className='winrow';
+    r.innerHTML='<div class="wbody"><div class="wl">'+esc(a)+'</div></div><button class="del" data-act="'+i+'">×</button>';
+    al.appendChild(r);
+  });
+  al.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>{ state.acts.splice(+b.dataset.act,1); save(); renderOcio(); });
+
+  const wl=document.getElementById('winList'); wl.innerHTML='';
+  if(!state.windows.length) wl.innerHTML='<p class="note" style="margin:0">Nenhuma janela ainda.</p>';
+  state.windows.sort((a,b)=>a.t.localeCompare(b.t)).forEach((w,i)=>{
+    const r=document.createElement('div'); r.className='winrow';
+    r.innerHTML='<div class="wt">'+w.t+'</div><div class="wbody"><div class="wl">'+esc(w.label)+'</div></div><button class="del" data-win="'+i+'">×</button>';
+    wl.appendChild(r);
+  });
+  wl.querySelectorAll('[data-win]').forEach(b=>b.onclick=()=>{ state.windows.splice(+b.dataset.win,1); save(); renderOcio(); });
+}
+function spin(){
+  const out=document.getElementById('rouletteOut');
+  if(!state.acts.length){ out.textContent='Adicione atividades primeiro'; return; }
+  out.classList.add('spin'); haptic();
+  let n=0; const iv=setInterval(()=>{ out.textContent=state.acts[Math.floor(Math.random()*state.acts.length)]; if(++n>7){clearInterval(iv); out.classList.remove('spin');} },70);
+}
+
+/* ============ render: SAÚDE ============ */
+const MILESTONES=[
+  [20/1440,'20 minutos','Frequência cardíaca e pressão começam a normalizar'],
+  [0.5,'12 horas','O monóxido de carbono no sangue cai; o oxigênio se normaliza'],
+  [1,'24 horas','O risco de infarto já começa a diminuir'],
+  [2,'48 horas','Terminações nervosas se recuperam; olfato e paladar melhoram'],
+  [3,'72 horas','Os brônquios relaxam — respirar fica mais fácil e a energia sobe'],
+  [14,'2 semanas','Circulação e função pulmonar começam a melhorar'],
+  [90,'1–3 meses','Capacidade pulmonar aumenta de forma perceptível'],
+  [270,'9 meses','Tosse e falta de ar diminuem; cílios pulmonares se recuperam'],
+  [365,'1 ano','Risco de doença coronariana cai à metade do de um fumante'],
+  [1825,'5 anos','Risco de AVC se aproxima do de quem nunca fumou'],
+  [3650,'10 anos','Risco de câncer de pulmão cai à metade do de um fumante']
+];
+function renderSaude(){
+  const ms=msSince(); const daysFrac=ms/86400000;
+  const tl=document.getElementById('timeline'); tl.innerHTML='';
+  MILESTONES.forEach(([d,when,what])=>{
+    const reached = daysFrac>=d;
+    const cls = reached?'reached':'future';
+    tl.innerHTML+='<div class="tlitem '+cls+'"><div class="dot"></div><div class="when">'+when+'</div><div class="what">'+what+'</div></div>';
+  });
+}
+
+/* ============ render: REGISTRO ============ */
+async function renderLog(){
+  const list=document.getElementById('logList'); const logs=await recentLogs();
+  if(!logs.length){ list.innerHTML='<p class="empty">Seu diário começa aqui. Cada fissura superada é um registro de força.</p>'; return; }
+  const tag={sup:['sup','superei'],lap:['lap','lapso'],nota:['nota','nota']};
+  list.innerHTML=logs.map(l=>{
+    const t=new Date(l.t); const dt=t.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+pad(t.getHours())+':'+pad(t.getMinutes());
+    const tg=tag[l.kind]||tag.nota;
+    return '<div class="logitem"><span class="ltag '+tg[0]+'">'+tg[1]+'</span><div class="lbody"><div class="lwhen">'+dt+'</div>'+(l.txt?'<div class="ltxt">'+esc(l.txt)+'</div>':'')+'</div></div>';
+  }).join('');
+}
+
+/* ============ fissura overlay (assinatura) ============ */
+let ovTimer=null, ovEnd=0, breathState=0, breathIv=null;
+const PHASES=[['Inspire',4000,1.15],['Segure',2000,1.15],['Expire',6000,0.62]];
+function openOverlay(){
+  const ov=document.getElementById('overlay'); ov.classList.add('on'); haptic();
+  ovEnd=Date.now()+4*60*1000; tick(); ovTimer=setInterval(tick,1000);
+  breathState=0; cycle(); breathIv=true;
+}
+function tick(){
+  const left=Math.max(0,ovEnd-Date.now());
+  const m=Math.floor(left/60000), s=Math.floor((left%60000)/1000);
+  document.getElementById('ovTimer').textContent=m+':'+pad(s);
+  if(left<=0){ document.getElementById('ovPhase').textContent='A onda passou'; }
+}
+function cycle(){
+  if(!breathIv) return;
+  const [label,dur,scale]=PHASES[breathState%PHASES.length];
+  document.getElementById('ovPhase').textContent=label;
+  const orb=document.getElementById('bigOrb');
+  orb.style.transition='transform '+(dur/1000)+'s ease-in-out, opacity '+(dur/1000)+'s ease-in-out';
+  orb.style.transform='scale('+scale+')';
+  orb.style.opacity = label==='Expire'?'.55':'1';
+  breathState++;
+  setTimeout(cycle,dur);
+}
+function closeOverlay(){
+  document.getElementById('overlay').classList.remove('on');
+  clearInterval(ovTimer); breathIv=false;
+}
+
+/* ============ settings sheet ============ */
+function openSheet(){
+  document.getElementById('setDiaD').value=state.diaD;
+  document.getElementById('setCigs').value=state.cigsPerDay;
+  document.getElementById('setPack').value=state.cigsPerPack;
+  document.getElementById('setPrice').value=state.pricePerPack;
+  document.getElementById('setBupHour').value=state.bupHour;
+  const tg=document.getElementById('setBup'); tg.classList.toggle('on',state.bupOn);
+  document.getElementById('bupHourWrap').style.display=state.bupOn?'block':'none';
+  document.getElementById('sheet').classList.add('on');
+}
+function saveSheet(){
+  state.diaD=document.getElementById('setDiaD').value||state.diaD;
+  state.cigsPerDay=+document.getElementById('setCigs').value||state.cigsPerDay;
+  state.cigsPerPack=+document.getElementById('setPack').value||state.cigsPerPack;
+  state.pricePerPack=+document.getElementById('setPrice').value||state.pricePerPack;
+  state.bupHour=document.getElementById('setBupHour').value||state.bupHour;
+  state.bupOn=document.getElementById('setBup').classList.contains('on');
+  save(); document.getElementById('sheet').classList.remove('on'); renderAll();
+}
+
+/* ============ util ============ */
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function haptic(){ try{ if(TG&&TG.HapticFeedback) TG.HapticFeedback.impactOccurred('light'); }catch(e){} }
+function renderAll(){ renderHoje(); renderOcio(); renderSaude(); renderLog(); }
+
+/* ============ nav + eventos ============ */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.pane').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    document.getElementById('pane-'+t.dataset.tab).classList.add('on');
+    haptic();
+  };
+});
+document.getElementById('sosBtn').onclick=openOverlay;
+document.getElementById('ovClose').onclick=closeOverlay;
+document.getElementById('ovDone').onclick=()=>{ addLog('sup','Fissura superada respirando'); closeOverlay(); };
+document.getElementById('ovOut').onclick=()=>{ closeOverlay(); document.querySelector('[data-tab="ocio"]').click(); spin(); };
+document.getElementById('spinBtn').onclick=spin;
+document.getElementById('rouletteOut').onclick=spin;
+document.getElementById('actAdd').onclick=()=>{ const v=document.getElementById('actInput').value.trim(); if(v){ state.acts.push(v); document.getElementById('actInput').value=''; save(); renderOcio(); } };
+document.getElementById('winAdd').onclick=()=>{ const t=document.getElementById('winTime').value, l=document.getElementById('winLabel').value.trim(); if(t&&l){ state.windows.push({t,label:l}); document.getElementById('winLabel').value=''; save(); renderOcio(); } };
+document.getElementById('regSup').onclick=()=>addLog('sup','');
+document.getElementById('regLap').onclick=()=>{ const g=prompt('Sem julgamento. Qual foi o gatilho? (opcional)')||''; addLog('lap',g); };
+document.getElementById('regNota').onclick=()=>{ const n=prompt('Anote o que sentiu ou o que travou:')||''; if(n) addLog('nota',n); };
+document.getElementById('gear').onclick=openSheet;
+document.getElementById('sheet').onclick=(e)=>{ if(e.target.id==='sheet') document.getElementById('sheet').classList.remove('on'); };
+document.getElementById('setBup').onclick=function(){ this.classList.toggle('on'); document.getElementById('bupHourWrap').style.display=this.classList.contains('on')?'block':'none'; };
+document.getElementById('saveBtn').onclick=saveSheet;
+
+/* atualiza a Home a cada minuto (contagem/tempo sem fumar) */
+setInterval(()=>{ if(document.getElementById('pane-hoje').classList.contains('on')) renderHoje(); }, 60000);
+
+load();
+</script>
+</body>
+</html>
