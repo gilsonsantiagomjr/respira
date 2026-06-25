@@ -148,6 +148,44 @@
   .lbody .ltxt{font-size:14px;margin-top:2px}
   .empty{color:var(--muted);font-size:14px;text-align:center;padding:26px 10px}
 
+  /* ---------- sync ---------- */
+  .synccode{width:100%;font-family:var(--mono);font-size:11px;word-break:break-all;
+    background:var(--ink);border:1px solid var(--line);border-radius:11px;padding:10px;
+    color:var(--breath);min-height:44px;margin-top:10px}
+  .syncrow{display:flex;gap:8px;margin-top:10px}
+
+  /* ---------- histograma ---------- */
+  .hist{display:flex;align-items:flex-end;gap:3px;height:120px;margin:16px 0 4px}
+  .hb{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;height:100%}
+  .hb .col{width:100%;display:flex;flex-direction:column;justify-content:flex-end}
+  .hb .bar{width:100%;border-radius:3px 3px 0 0}
+  .hb .bar.sup{background:var(--breath-dim)}
+  .hb .bar.lap{background:var(--ember-dim)}
+  .hb .hl{font-family:var(--mono);font-size:8px;color:var(--muted)}
+  .peak{background:rgba(95,211,196,.1);border:1px solid var(--line);border-radius:12px;
+    padding:13px 15px;font-size:13.5px;margin-top:8px;line-height:1.5}
+  .peak b{color:var(--breath)}
+  .leg{display:flex;gap:16px;font-size:11px;color:var(--muted);margin-top:6px}
+  .leg span{display:flex;align-items:center;gap:6px}
+  .leg i{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+  /* ---------- relatório imprimível ---------- */
+  #report{display:none}
+  @media print{
+    body{background:#fff}
+    .app,nav,.overlay,.sheet{display:none !important}
+    #report{display:block;color:#15211f;font-family:Georgia,'Times New Roman',serif;padding:0;max-width:none}
+    #report h1{font-size:22px;margin:0 0 2px}
+    #report .sub{color:#557;font-size:12px;margin-bottom:18px}
+    #report h2{font-size:14px;border-bottom:1px solid #ccc;padding-bottom:4px;margin:22px 0 10px}
+    #report .grid{display:flex;flex-wrap:wrap;gap:18px;margin-bottom:6px}
+    #report .stat b{font-size:20px;display:block}
+    #report .stat span{font-size:11px;color:#557}
+    #report ul{margin:6px 0;padding-left:18px}
+    #report li{font-size:12.5px;margin-bottom:3px}
+    #report .foot{margin-top:26px;font-size:10.5px;color:#778;border-top:1px solid #ccc;padding-top:8px}
+  }
+
   /* ---------- bottom nav ---------- */
   nav{position:fixed;left:0;right:0;bottom:0;max-width:460px;margin:0 auto;
     background:rgba(14,42,43,.92);backdrop-filter:blur(14px);border-top:1px solid var(--line);
@@ -246,6 +284,19 @@
         <button class="miniadd" id="winAdd">+ Add</button>
       </div>
     </div>
+    <div class="block">
+      <h3>Sincronizar com o bot</h3>
+      <p class="note">Sem servidor: gere um código aqui e cole no bot com <b>/importar</b> — ou traga o código do bot (<b>/exportar</b>) e cole abaixo. Leva Dia D, ajustes e janelas.</p>
+      <button class="spinbtn" id="syncGen" style="background:var(--surface2);color:var(--breath)">Gerar código deste app</button>
+      <div class="synccode" id="syncOut" style="display:none"></div>
+      <div class="syncrow" id="syncCopyRow" style="display:none">
+        <button class="miniadd" id="syncCopy">Copiar código</button>
+      </div>
+      <div class="additem">
+        <input id="syncIn" placeholder="Colar código vindo do bot">
+        <button class="miniadd" id="syncImport">Importar</button>
+      </div>
+    </div>
   </section>
 
   <!-- SAUDE -->
@@ -266,6 +317,17 @@
     </div>
     <button class="regbtn" id="regNota" style="width:100%;margin-bottom:8px">Anotar uma nota / gatilho</button>
     <p style="color:var(--muted);font-size:12.5px;margin:4px 0 14px;line-height:1.5">Um lapso é <b style="color:var(--ember)">um cigarro</b>, não uma recaída. Registre o gatilho e retome hoje — sem "já estraguei tudo".</p>
+    <div class="block" id="patternsBlock" style="display:none">
+      <h3>Padrões de fissura</h3>
+      <p class="note">Quando o tédio mais bate. Use para criar janelas certeiras.</p>
+      <div class="hist" id="hist"></div>
+      <div class="leg"><span><i style="background:var(--breath-dim)"></i>superadas</span><span><i style="background:var(--ember-dim)"></i>lapsos</span></div>
+      <div id="peak"></div>
+    </div>
+    <div class="regbtns" style="margin:14px 0 8px">
+      <button class="regbtn" id="btnReport">Relatório p/ terapia</button>
+      <button class="regbtn" id="btnCopy">Copiar resumo</button>
+    </div>
     <div id="logList"></div>
   </section>
 
@@ -309,6 +371,9 @@
     <p class="disclaim">O Respira é um apoio comportamental e não substitui seu acompanhamento psiquiátrico e terapêutico. Decisões sobre medicação são do seu psiquiatra. Em crise, procure ajuda profissional ou ligue para o CVV (188).</p>
   </div>
 </div>
+
+<!-- RELATÓRIO IMPRIMÍVEL -->
+<div id="report"></div>
 
 <script>
 /* ============ storage: 3 níveis (Telegram CloudStorage > window.storage > localStorage) ============ */
@@ -378,7 +443,7 @@ async function addLog(kind, txt){
   arr.unshift({t:Date.now(), kind, txt:txt||''});
   await Store.setJSON(k, arr);
   if(kind==='sup'){ state.supTotal=(state.supTotal||0)+1; await save(); }
-  renderHoje(); renderLog();
+  renderHoje(); renderLog(); renderPatterns();
 }
 async function recentLogs(){
   const out=[]; const d=new Date();
@@ -561,10 +626,122 @@ function saveSheet(){
   save(); document.getElementById('sheet').classList.remove('on'); renderAll();
 }
 
+/* ============ sincronização app <-> bot (sem servidor) ============ */
+function syncEncode(){
+  const obj={d:state.diaD,c:state.cigsPerDay,p:state.pricePerPack,k:state.cigsPerPack,
+    b:state.bupOn?state.bupHour:null, w:state.windows.map(w=>[w.t,w.label])};
+  let b64=btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+  return 'RSP1.'+b64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function syncDecode(code){
+  code=String(code).trim();
+  if(code.startsWith('RSP1.')) code=code.slice(5);
+  code=code.replace(/-/g,'+').replace(/_/g,'/');
+  while(code.length%4) code+='=';
+  return JSON.parse(decodeURIComponent(escape(atob(code))));
+}
+function applySync(o){
+  if(o.d) state.diaD=o.d;
+  if(o.c) state.cigsPerDay=o.c;
+  if(o.p!=null) state.pricePerPack=o.p;
+  if(o.k) state.cigsPerPack=o.k;
+  if(o.b){ state.bupOn=true; state.bupHour=o.b; } else { state.bupOn=false; }
+  if(Array.isArray(o.w)) state.windows=o.w.map(x=>({t:x[0],label:x[1]}));
+  save(); renderAll();
+}
+async function copyText(txt){
+  try{ await navigator.clipboard.writeText(txt); return true; }
+  catch(e){
+    const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta);
+    ta.select(); let ok=false; try{ ok=document.execCommand('copy'); }catch(_){}
+    document.body.removeChild(ta); return ok;
+  }
+}
+
+/* ============ padrões de fissura (histograma por horário) ============ */
+async function allLogs(){
+  const out=[]; const d=new Date();
+  for(let i=0;i<12;i++){ const arr=await Store.getJSON(logKey(d),[]); out.push(...arr); d.setMonth(d.getMonth()-1); }
+  return out;
+}
+async function renderPatterns(){
+  const logs=(await allLogs()).filter(l=>l.kind==='sup'||l.kind==='lap');
+  const block=document.getElementById('patternsBlock');
+  if(logs.length<3){ block.style.display='none'; return; }
+  block.style.display='block';
+  const byHour=Array.from({length:24},()=>({sup:0,lap:0}));
+  logs.forEach(l=>{ const h=new Date(l.t).getHours(); l.kind==='lap'?byHour[h].lap++:byHour[h].sup++; });
+  const max=Math.max(...byHour.map(b=>b.sup+b.lap),1);
+  const hist=document.getElementById('hist'); hist.innerHTML='';
+  byHour.forEach((b,h)=>{
+    const total=b.sup+b.lap, hPct=total/max*100;
+    const inner=(b.lap?'<div class="bar lap" style="flex:'+b.lap+'"></div>':'')+
+                (b.sup?'<div class="bar sup" style="flex:'+b.sup+'"></div>':'');
+    const lab=(h%6===0)?h+'h':'';
+    hist.innerHTML+='<div class="hb"><div class="col" style="height:'+hPct+'%">'+inner+'</div><div class="hl">'+lab+'</div></div>';
+  });
+  let peakH=0,peakV=0; byHour.forEach((b,h)=>{const t=b.sup+b.lap; if(t>peakV){peakV=t;peakH=h;}});
+  document.getElementById('peak').innerHTML='<div class="peak">Seu tédio bate mais por volta das <b>'+peakH+'h</b> ('+peakV+' registro'+(peakV>1?'s':'')+'). Uma janela de ócio nesse horário ataca o problema na raiz. <button class="miniadd" id="peakAdd" style="margin-top:10px">Criar janela às '+pad(peakH)+':00</button></div>';
+  document.getElementById('peakAdd').onclick=()=>{
+    state.windows.push({t:pad(peakH)+':00',label:'Antídoto do tédio (defina a atividade)'});
+    save(); renderOcio();
+    document.querySelector('[data-tab="ocio"]').click();
+  };
+}
+
+/* ============ relatório para a terapia ============ */
+function fmtStamp(ts){ const d=new Date(ts); return d.toLocaleDateString('pt-BR')+' '+pad(d.getHours())+':'+pad(d.getMinutes()); }
+async function buildReportData(){
+  const logs=await allLogs();
+  const ms=msSince(), daysFrac=ms/86400000;
+  const days=Math.max(0,Math.floor(daysFrac));
+  const cigs=Math.max(0,Math.floor(daysFrac*state.cigsPerDay));
+  const money=Math.max(0,daysFrac*state.cigsPerDay/state.cigsPerPack*state.pricePerPack);
+  const sup=logs.filter(l=>l.kind==='sup');
+  const lap=logs.filter(l=>l.kind==='lap').sort((a,b)=>b.t-a.t);
+  const notes=logs.filter(l=>l.kind==='nota').sort((a,b)=>b.t-a.t);
+  return {days,cigs,money,sup,lap,notes,pre:ms<0};
+}
+async function showReport(){
+  const r=await buildReportData();
+  const dd=diaDDate().toLocaleDateString('pt-BR');
+  const hoje=new Date().toLocaleDateString('pt-BR');
+  let h='<h1>Respira — relatório de acompanhamento</h1>';
+  h+='<div class="sub">Gerado em '+hoje+' · Dia D: '+dd+' · Apoio comportamental complementar ao acompanhamento psiquiátrico e terapêutico</div>';
+  h+='<h2>Panorama</h2><div class="grid">';
+  h+='<div class="stat"><b>'+(r.pre?'—':r.days)+'</b><span>dias sem fumar</span></div>';
+  h+='<div class="stat"><b>'+r.cigs+'</b><span>cigarros não fumados</span></div>';
+  h+='<div class="stat"><b>'+fmtBRL(r.money)+'</b><span>economizado</span></div>';
+  h+='<div class="stat"><b>'+r.sup.length+'</b><span>fissuras superadas</span></div>';
+  h+='<div class="stat"><b>'+r.lap.length+'</b><span>lapsos</span></div></div>';
+  h+='<h2>Lapsos e gatilhos</h2>';
+  if(!r.lap.length){ h+='<p style="font-size:12.5px">Nenhum lapso registrado no período.</p>'; }
+  else { h+='<ul>'+r.lap.map(l=>'<li>'+fmtStamp(l.t)+(l.txt?' — '+esc(l.txt):' — (sem gatilho anotado)')+'</li>').join('')+'</ul>'; }
+  h+='<h2>Notas pessoais</h2>';
+  if(!r.notes.length){ h+='<p style="font-size:12.5px">Sem notas no período.</p>'; }
+  else { h+='<ul>'+r.notes.slice(0,20).map(n=>'<li>'+fmtStamp(n.t)+' — '+esc(n.txt)+'</li>').join('')+'</ul>'; }
+  h+='<div class="foot">Documento gerado pelo app Respira para uso em sessão clínica. Não é um instrumento diagnóstico. Em crise, CVV 188.</div>';
+  document.getElementById('report').innerHTML=h;
+  window.print();
+}
+async function copyReportSummary(){
+  const r=await buildReportData();
+  const dd=diaDDate().toLocaleDateString('pt-BR');
+  let t='RESPIRA — resumo ('+new Date().toLocaleDateString('pt-BR')+')\n';
+  t+='Dia D: '+dd+'\n';
+  t+=(r.pre?'Ainda em preparação para o Dia D.':r.days+' dias sem fumar')+'\n';
+  t+='Cigarros não fumados: '+r.cigs+'\n';
+  t+='Economia estimada: '+fmtBRL(r.money)+'\n';
+  t+='Fissuras superadas: '+r.sup.length+' | Lapsos: '+r.lap.length+'\n';
+  if(r.lap.length){ t+='\nLapsos:\n'+r.lap.map(l=>'- '+fmtStamp(l.t)+(l.txt?' ('+l.txt+')':'')).join('\n')+'\n'; }
+  const ok=await copyText(t);
+  alert(ok?'Resumo copiado. É só colar onde quiser.':'Não consegui copiar automaticamente.');
+}
+
 /* ============ util ============ */
 function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function haptic(){ try{ if(TG&&TG.HapticFeedback) TG.HapticFeedback.impactOccurred('light'); }catch(e){} }
-function renderAll(){ renderHoje(); renderOcio(); renderSaude(); renderLog(); }
+function renderAll(){ renderHoje(); renderOcio(); renderSaude(); renderLog(); renderPatterns(); }
 
 /* ============ nav + eventos ============ */
 document.querySelectorAll('.tab').forEach(t=>{
@@ -591,6 +768,25 @@ document.getElementById('gear').onclick=openSheet;
 document.getElementById('sheet').onclick=(e)=>{ if(e.target.id==='sheet') document.getElementById('sheet').classList.remove('on'); };
 document.getElementById('setBup').onclick=function(){ this.classList.toggle('on'); document.getElementById('bupHourWrap').style.display=this.classList.contains('on')?'block':'none'; };
 document.getElementById('saveBtn').onclick=saveSheet;
+/* sync */
+document.getElementById('syncGen').onclick=()=>{
+  const code=syncEncode();
+  document.getElementById('syncOut').textContent=code;
+  document.getElementById('syncOut').style.display='block';
+  document.getElementById('syncCopyRow').style.display='flex';
+};
+document.getElementById('syncCopy').onclick=async()=>{
+  const ok=await copyText(document.getElementById('syncOut').textContent);
+  alert(ok?'Código copiado. Cole no bot com /importar <código>.':'Não consegui copiar.');
+};
+document.getElementById('syncImport').onclick=()=>{
+  const v=document.getElementById('syncIn').value.trim(); if(!v) return;
+  try{ applySync(syncDecode(v)); document.getElementById('syncIn').value=''; alert('Sincronizado! Dia D, ajustes e janelas atualizados.'); }
+  catch(e){ alert('Código inválido. Confira se copiou inteiro.'); }
+};
+/* relatório */
+document.getElementById('btnReport').onclick=showReport;
+document.getElementById('btnCopy').onclick=copyReportSummary;
 
 /* atualiza a Home a cada minuto (contagem/tempo sem fumar) */
 setInterval(()=>{ if(document.getElementById('pane-hoje').classList.contains('on')) renderHoje(); }, 60000);
