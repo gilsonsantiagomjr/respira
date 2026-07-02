@@ -250,6 +250,7 @@
         <div class="orbtext"><div class="bignum" id="bigNum">—</div><div class="bigunit" id="bigUnit"></div></div>
       </div>
       <div class="subline" id="heroSub"></div>
+      <button id="markNow" style="margin-top:14px;background:none;border:1px solid var(--line);color:var(--muted);border-radius:11px;padding:9px 15px;font-family:var(--ui);font-size:12.5px;cursor:pointer">⏱ Marcar o momento em que parei</button>
     </div>
     <button class="sos" id="sosBtn">Tô na fissura<small>respira comigo até a onda passar</small></button>
     <div id="hojeBody"></div>
@@ -356,7 +357,10 @@
 <div class="sheet" id="sheet">
   <div class="sheetbody">
     <h2>Ajustes</h2>
-    <div class="field"><label>Dia D (primeiro dia sem fumar)</label><input type="date" id="setDiaD"></div>
+    <div class="field"><label>Dia e hora em que parei de fumar</label>
+      <input type="datetime-local" id="setDiaD">
+      <button class="miniadd" id="setNow" style="margin-top:8px;width:100%">⏱ Usar o horário atual (parei agora)</button>
+    </div>
     <div class="row2">
       <div class="field" style="flex:1"><label>Cigarros por dia</label><input type="number" id="setCigs" min="1" max="80"></div>
       <div class="field" style="flex:1"><label>Cigarros por maço</label><input type="number" id="setPack" min="1" max="40"></div>
@@ -368,6 +372,7 @@
     </div>
     <div class="field" id="bupHourWrap" style="margin-top:12px"><label>Horário do lembrete</label><input type="time" id="setBupHour"></div>
     <button class="savebtn" id="saveBtn">Salvar</button>
+    <button class="miniadd" id="addHome" style="display:none;width:100%;margin-top:10px">📲 Adicionar à tela inicial</button>
     <p class="disclaim">O Respira é um apoio comportamental e não substitui seu acompanhamento psiquiátrico e terapêutico. Decisões sobre medicação são do seu psiquiatra. Em crise, procure ajuda profissional ou ligue para o CVV (188).</p>
   </div>
 </div>
@@ -378,7 +383,7 @@
 <script>
 /* ============ storage: 3 níveis (Telegram CloudStorage > window.storage > localStorage) ============ */
 const TG = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData !== undefined) ? window.Telegram.WebApp : null;
-if (TG) { try { TG.ready(); TG.expand(); } catch(e){} }
+if (TG) { try { TG.ready(); TG.expand(); if(TG.onEvent) TG.onEvent('homeScreenAdded', ()=>{ const b=document.getElementById('addHome'); if(b){ b.textContent='✓ Adicionado à tela inicial'; b.disabled=true; } }); } catch(e){} }
 const CS = (TG && TG.CloudStorage) ? TG.CloudStorage : null;
 
 const Store = {
@@ -420,10 +425,13 @@ let state = {
     {t:'13:30', label:'Depois do almoço — caminhar 8 min'},
     {t:'17:00', label:'Fim de tarde — uma página de Latim'}
   ],
-  prep:{}, supTotal:0
+  prep:{}, supTotal:0, quitLocal:null
 };
 
-function diaDDate(){ return new Date(state.diaD + 'T00:00:00-03:00'); }
+// quitLocal = "AAAA-MM-DDTHH:MM" no fuso America/Bahia (momento exato do último cigarro).
+// Se ausente, usa o Dia D à meia-noite.
+function diaDDate(){ return new Date(state.quitLocal ? (state.quitLocal + ':00-03:00') : (state.diaD + 'T00:00:00-03:00')); }
+function nowBahiaLocal(){ return new Date().toLocaleString('sv-SE',{timeZone:'America/Bahia'}).slice(0,16).replace(' ','T'); }
 function now(){ return new Date(); }
 function msSince(){ return now() - diaDDate(); }
 function fmtBRL(v){ return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v); }
@@ -471,8 +479,13 @@ function renderHoje(){
     const totalDays=Math.floor(ms/86400000);
     if(totalDays<1){
       const h=Math.floor(ms/3600000), m=Math.floor((ms%3600000)/60000);
-      document.getElementById('bigNum').textContent=h+'h';
-      document.getElementById('bigUnit').textContent=m+' min sem fumar';
+      if(h<1){
+        document.getElementById('bigNum').textContent=m;
+        document.getElementById('bigUnit').textContent=m===1?'minuto sem fumar':'minutos sem fumar';
+      } else {
+        document.getElementById('bigNum').textContent=h+'h';
+        document.getElementById('bigUnit').textContent=m+' min sem fumar';
+      }
     } else {
       document.getElementById('bigNum').textContent=totalDays;
       document.getElementById('bigUnit').textContent=totalDays===1?'dia sem fumar':'dias sem fumar';
@@ -607,17 +620,28 @@ function closeOverlay(){
 
 /* ============ settings sheet ============ */
 function openSheet(){
-  document.getElementById('setDiaD').value=state.diaD;
+  document.getElementById('setDiaD').value = state.quitLocal || (state.diaD + 'T00:00');
   document.getElementById('setCigs').value=state.cigsPerDay;
   document.getElementById('setPack').value=state.cigsPerPack;
   document.getElementById('setPrice').value=state.pricePerPack;
   document.getElementById('setBupHour').value=state.bupHour;
   const tg=document.getElementById('setBup'); tg.classList.toggle('on',state.bupOn);
   document.getElementById('bupHourWrap').style.display=state.bupOn?'block':'none';
+  initHomeScreen();
   document.getElementById('sheet').classList.add('on');
 }
+function initHomeScreen(){
+  const btn=document.getElementById('addHome');
+  if(!(TG && TG.isVersionAtLeast && TG.isVersionAtLeast('8.0') && TG.addToHomeScreen)){ btn.style.display='none'; return; }
+  btn.style.display='block'; btn.disabled=false; btn.textContent='📲 Adicionar à tela inicial';
+  if(TG.checkHomeScreenStatus){
+    try{ TG.checkHomeScreenStatus((s)=>{ if(s==='added'){ btn.textContent='✓ Já está na tela inicial'; btn.disabled=true; } }); }catch(e){}
+  }
+  btn.onclick=()=>{ try{ TG.addToHomeScreen(); }catch(e){} };
+}
 function saveSheet(){
-  state.diaD=document.getElementById('setDiaD').value||state.diaD;
+  const q=document.getElementById('setDiaD').value;   // AAAA-MM-DDTHH:MM
+  if(q){ state.quitLocal=q; state.diaD=q.slice(0,10); }
   state.cigsPerDay=+document.getElementById('setCigs').value||state.cigsPerDay;
   state.cigsPerPack=+document.getElementById('setPack').value||state.cigsPerPack;
   state.pricePerPack=+document.getElementById('setPrice').value||state.pricePerPack;
@@ -629,7 +653,7 @@ function saveSheet(){
 /* ============ sincronização app <-> bot (sem servidor) ============ */
 function syncEncode(){
   const obj={d:state.diaD,c:state.cigsPerDay,p:state.pricePerPack,k:state.cigsPerPack,
-    b:state.bupOn?state.bupHour:null, w:state.windows.map(w=>[w.t,w.label])};
+    b:state.bupOn?state.bupHour:null, q:state.quitLocal||null, w:state.windows.map(w=>[w.t,w.label])};
   let b64=btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
   return 'RSP1.'+b64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
@@ -642,6 +666,7 @@ function syncDecode(code){
 }
 function applySync(o){
   if(o.d) state.diaD=o.d;
+  if(o.q) state.quitLocal=o.q;
   if(o.c) state.cigsPerDay=o.c;
   if(o.p!=null) state.pricePerPack=o.p;
   if(o.k) state.cigsPerPack=o.k;
@@ -768,6 +793,14 @@ document.getElementById('gear').onclick=openSheet;
 document.getElementById('sheet').onclick=(e)=>{ if(e.target.id==='sheet') document.getElementById('sheet').classList.remove('on'); };
 document.getElementById('setBup').onclick=function(){ this.classList.toggle('on'); document.getElementById('bupHourWrap').style.display=this.classList.contains('on')?'block':'none'; };
 document.getElementById('saveBtn').onclick=saveSheet;
+document.getElementById('setNow').onclick=()=>{ document.getElementById('setDiaD').value=nowBahiaLocal(); };
+document.getElementById('markNow').onclick=()=>{
+  if(confirm('Marcar agora como o momento em que você parou de fumar? A contagem passa a valer a partir de agora.')){
+    state.quitLocal=nowBahiaLocal(); state.diaD=state.quitLocal.slice(0,10);
+    save(); renderAll(); haptic();
+    alert('Marcado. A partir de agora, cada minuto conta. 🌬️');
+  }
+};
 /* sync */
 document.getElementById('syncGen').onclick=()=>{
   const code=syncEncode();
