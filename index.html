@@ -385,18 +385,21 @@
 const TG = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData !== undefined) ? window.Telegram.WebApp : null;
 if (TG) { try { TG.ready(); TG.expand(); if(TG.onEvent) TG.onEvent('homeScreenAdded', ()=>{ const b=document.getElementById('addHome'); if(b){ b.textContent='✓ Adicionado à tela inicial'; b.disabled=true; } }); } catch(e){} }
 const CS = (TG && TG.CloudStorage) ? TG.CloudStorage : null;
+// As chaves do CloudStorage do Telegram só aceitam [A-Za-z0-9_-]. O ":" das
+// nossas chaves era rejeitado em silêncio -> nada gravava (reset a cada fechamento).
+function csKey(k){ return String(k).replace(/[^A-Za-z0-9_-]/g,'_'); }
 
 const Store = {
   getRaw(key){
     return new Promise((resolve)=>{
-      if (CS){ CS.getItem(key,(err,val)=>resolve(err?null:(val||null))); return; }
+      if (CS){ CS.getItem(csKey(key),(err,val)=>resolve(err?null:(val||null))); return; }
       if (window.storage){ window.storage.get(key).then(r=>resolve(r?r.value:null)).catch(()=>resolve(null)); return; }
       try{ resolve(localStorage.getItem(key)); }catch(e){ resolve(null); }
     });
   },
   setRaw(key,val){
     return new Promise((resolve)=>{
-      if (CS){ CS.setItem(key,val,()=>resolve(true)); return; }
+      if (CS){ CS.setItem(csKey(key),val,(err,ok)=>resolve(!err && ok!==false)); return; }
       if (window.storage){ window.storage.set(key,val).then(()=>resolve(true)).catch(()=>resolve(false)); return; }
       try{ localStorage.setItem(key,val); resolve(true);}catch(e){ resolve(false);}
     });
